@@ -6,10 +6,10 @@
 //
 
 import SwiftUI
-
 struct ContentView: View {
-    @State private var text = ""
+    @State private var text = "Smartisan"
     var body: some View {
+    
         VStack{
             Text(text).font(.title)
                 
@@ -24,46 +24,52 @@ struct ContentView: View {
                 Text("Clear").font(.largeTitle)
             }
             Button(action: {
-                self.httpRequest()
+                self.getGirl()
             }){
                 Text("Girl").font(.largeTitle)
             }
+            TextField("输入",text:$text).padding(10)
         }
       
     }
     
     func startLoad(){
-        let url = URL(string: "https://raw.githubusercontent.com/xiaoyouxinqing/PostDemo/master/PostDemo/Resources/PostListData_recommend_1.json")!
-//       var request = URLRequest(url: url)
-        let task = URLSession.shared.dataTask(with: url){data, response, error in
-            if let error = error {
-                DispatchQueue.main.async {
-                    self.updateText(error.localizedDescription)
-                }
-                return
+        NetworkApi.hotPostList { result in
+            switch result{
+            case let .success(list):
+                self.updateText("Post conut \(list.list.count)")
+                printData(list: list.list)
+            case let .failure(error):  self.updateText(error.localizedDescription)
             }
-            
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                DispatchQueue.main.async {
-                    self.updateText("Invalid response")
-                }
-                return
-            }
-            
-            guard let data = data else {
-                self.updateText("No data")
-                return
-            }
-            
-            guard let list = try? JSONDecoder().decode(PostList.self, from: data) else {
-                self.updateText("Can not parse  data")
-                return
-            }
-            self.updateText("Post conut \(list.list.count)")
-            
         }
-        task.resume()
+    }
+    
+    func getGirl() -> Void {
+          let url = "data/category/Girl/type/Girl/page/1/count/10"
+        NetworkApi.getGrilList(url: url) { result in
+            switch result {
+            case let .success(list):
+                self.updateText("Post conut \(list.data.count)")
+                printGirlData(list: list.data)
+            case let .failure(error):  self.updateText(error.localizedDescription)
+            }
+        }
+       
+        
+    }
+    func printGirlData( list:[Girl]) -> Void {
+        list.forEach { Girl in
+            print(Girl.desc)
+        }
+        
+    }
+    
+    
+    func printData( list:[PostBean]) -> Void {
+        list.forEach { PostBean in
+            print(PostBean.avatar)
+        }
+        
     }
     
     func updateText(_ text: String){
@@ -72,31 +78,7 @@ struct ContentView: View {
         }
         
     }
-    func httpRequest() -> Void {
-            guard let url = URL(string: "https://gank.io/api/v2/data/category/Girl/type/Girl/page/1/count/10") else {
-                return
-            }
-            
-            let urlRequest = URLRequest(url: url)
-            let config = URLSessionConfiguration.default
-            config.httpAdditionalHeaders = ["Content-Type":"application/json"]
-            config.timeoutIntervalForRequest = 30
-            config.requestCachePolicy = .reloadIgnoringLocalCacheData
-            let session = URLSession(configuration: config)
-            
-            
-            session.dataTask(with: urlRequest){
-                (data,_,_) in
-                if let resultData = data{
-                    do {
-                        let jsonObject = try JSONSerialization.jsonObject(with: resultData, options:[.mutableContainers,.mutableLeaves])
-                        print(jsonObject)
-                    }catch{
-                        print("error")
-                    }
-                }
-            }.resume()
-        }
+   
 }
 
 struct ContentView_Previews: PreviewProvider {
